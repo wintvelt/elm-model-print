@@ -1,4 +1,7 @@
-module PrintAny exposing (config, log, view, viewWithConfig)
+module PrintAny exposing
+    ( view, log
+    , config, viewWithConfig
+    )
 
 {-| A tiny library for debugging purposes.
 It prints any record to the console or to the DOM.
@@ -7,15 +10,14 @@ You can simply call `PrintAny.view myRecord` inside your `view` function,
 to print `myRecord` to the DOM.
 
 Or use `PrintAny.log myRecord` anywhere, to get a (somewhat) prettified version of the record in the console.
-
-_PS: You may not want to use this with large records.
-Performance is not optimal. This module iterates over a
-string version of the record, which may take long time._
+_PS: You may not want to use this with large records._
+_Performance is not optimal. This module iterates over a_
+_string version of the record, which may take long time._
 
 
 # Basics
 
-@docs view,log
+@docs view, log
 
 
 # Advanced
@@ -27,6 +29,7 @@ string version of the record, which may take long time._
 import Html exposing (Html, p, pre, text)
 import Html.Attributes exposing (class, style)
 import String
+
 
 
 {- Library constants -}
@@ -100,6 +103,7 @@ defaultConfig =
 
 
 {-| renders any record to the Dom.
+
 Usage:
 
 ```Elm
@@ -137,11 +141,11 @@ view model =
 
 -}
 viewWithConfig : Config -> a -> Html msg
-viewWithConfig (Config config) record =
+viewWithConfig (Config conf) record =
     let
         lines =
             record
-                |> toString
+                |> Debug.toString
                 |> splitWithQuotes
                 |> splitUnquotedWithChars
                 |> List.concat
@@ -149,13 +153,14 @@ viewWithConfig (Config config) record =
                 |> addIndents
     in
     pre
-        (if config.className == "" then
+        (if conf.className == "" then
             []
+
          else
-            [ class config.className ]
+            [ class conf.className ]
         )
     <|
-        List.map (viewLine <| Config config) lines
+        List.map (viewLine <| Config conf) lines
 
 
 
@@ -163,13 +168,11 @@ viewWithConfig (Config config) record =
 
 
 viewLine : Config -> ( Int, String ) -> Html msg
-viewLine (Config config) ( indent, string ) =
+viewLine (Config conf) ( indent, string ) =
     p
-        [ style
-            [ ( "paddingLeft", px (indent * config.increment) )
-            , ( "marginTop", "0px" )
-            , ( "marginBottom", "0px" )
-            ]
+        [ style "paddingLeft" (px (indent * conf.increment))
+        , style "marginTop" "0px"
+        , style "marginBottom" "0px"
         ]
         [ text <| String.join "\n" <| String.split "\\n" string ]
 
@@ -213,7 +216,7 @@ log record =
     let
         lines =
             record
-                |> toString
+                |> Debug.toString
                 |> splitWithQuotes
                 |> splitUnquotedWithChars
                 |> List.concat
@@ -249,8 +252,7 @@ logLine ( indent, string ) =
 
 px : Int -> String
 px int =
-    toString int
-        ++ "px"
+    String.fromInt int ++ "px"
 
 
 type alias IndentedString =
@@ -286,8 +288,10 @@ addIndent string startList =
                 ( newIndentBefore, newIndentAfter ) =
                     if String.contains firstChar constants.indentChars then
                         ( indentAfter + 1, indentAfter + 1 )
+
                     else if String.contains firstChar constants.outdentChars then
                         ( indentAfter, indentAfter - 1 )
+
                     else
                         ( indentAfter, indentAfter )
             in
@@ -318,6 +322,7 @@ splitUnquotedWithChars stringList =
         splitString string =
             if String.left 1 string == constants.quote then
                 [ string ]
+
             else
                 splitWithChars
                     (constants.indentChars ++ constants.newLineChars ++ constants.outdentChars)
@@ -358,6 +363,7 @@ splitWithChar splitter string =
             (\ind str ->
                 if ind > 0 then
                     splitter ++ str
+
                 else
                     str
             )
@@ -372,8 +378,9 @@ splitWithQuotes string =
     String.split "\"" string
         |> List.indexedMap
             (\i str ->
-                if rem i 2 == 1 then
+                if remainderBy 2 i == 1 then
                     "\"" ++ str ++ "\""
+
                 else
                     str
             )
@@ -399,6 +406,7 @@ mergeOneQuote string startList =
 
             [] ->
                 [ string ]
+
     else
         -- simply add string as line to the list
         startList ++ [ string ]
@@ -410,7 +418,7 @@ mergeOneQuote string startList =
 
 pad : Int -> String
 pad indent =
-    String.padLeft 5 '0' <| toString indent
+    String.padLeft 5 '0' <| String.fromInt indent
 
 
 splitLine : String -> ( Int, String )
@@ -419,7 +427,7 @@ splitLine line =
         indent =
             String.left 5 line
                 |> String.toInt
-                |> Result.withDefault 0
+                |> Maybe.withDefault 0
 
         newLine =
             String.dropLeft 5 line
